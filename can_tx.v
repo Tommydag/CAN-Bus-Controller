@@ -15,6 +15,7 @@ module can_tx(
 	input rx,
 	input[10:0] address,
 	input clk,
+	input baud_clk,
 	input rst,
 	input [31:0] data,
 	input send_data
@@ -23,19 +24,25 @@ module can_tx(
 	parameter idle = 8'h0,  waiting = 8'h1, addressing =8'h2 ,rtr = 8'h3 ,ide = 8'h4, reserve_bit = 8'h5, num_of_bytes = 8'h6 ,
 			data_out = 8'h7, crc_out = 8'h8, crc_delimiter = 8'h9 , ack = 8'hA, ack_delimiter =  8'hB, end_of_frame = 8'hC;
 
-	parameter bytes = 4'd4;
-	wire baud_clk;
-
-	reg[10:0] count  = 0;
-	reg[4:0] address_count = 0, crc_count = 0;
-	reg[5:0] data_bit_count = 0;
-	reg[2:0] data_byte_cout = 0;
+	parameter bytes = 5'd4;
+	reg[10:0] address_count = 0, crc_count = 0, eof_count = 0 , data_bit_count = 0, data_byte_count = 0;
 	reg[7:0] c_state=0, n_state=0;
-	reg outputting = 0;
-	wire[15:0] crc_check;
+	reg outputting = 1;
+	//wire[14:0] crc_check;
+	reg[14:0] crc_output;
 
-	BaudGen baud_calc(clk,rst,baud_clk);
-	CRC cyclic_red_check(data,1,crc_check,rst,clk);
+	//CRC cyclic_red_check(data,1'b1,crc_check,rst,clk);
+	parameter crc_check = 15'd63;
+	assign rx_buf = rx;
+	
+	always @ (posedge clk or posedge rst) begin
+		if(rst == 1) begin
+			crc_output <= 15'd0;
+		end
+		else begin
+			crc_output <= crc_check;
+		end
+	end
 	
 	//Update Logic
 	always @ (posedge baud_clk or posedge rst) begin
@@ -47,18 +54,106 @@ module can_tx(
 		end
 	end
 
-	//Counting logic
-	always @ (posedge baud_clk or posedge rst) begin
-		if(rst == 1) begin
-			count <= 0;
-		end
-		else begin
-			count <= count + 1;
-		end
+	//Counting Logic
+	always @ (posedge baud_clk) begin
+		case(c_state) 
+			idle: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			addressing: begin
+				address_count <= address_count + 1;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			rtr: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			ide: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			reserve_bit: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			num_of_bytes: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= data_byte_count +1;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			data_out: begin
+				address_count <= 11'd0;
+				data_bit_count<= data_bit_count +1;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			crc_out: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= crc_count +1; 
+				eof_count <= 11'd0;
+			end
+			crc_delimiter: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			ack: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			ack_delimiter:begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+			end_of_frame: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= eof_count +1;
+			end
+			default: begin
+				address_count <= 11'd0;
+				data_bit_count<= 11'd0;
+				data_byte_count<= 11'd0;
+				crc_count <= 11'd0; 
+				eof_count <= 11'd0;
+			end
+		endcase
 	end
 
 	//Next State Logic
-	always @ (c_state or rx or data or outputting or address_count) begin
+	always @ (c_state or rx_buf or data or outputting or address_count or tx or data_byte_count
+		or data_bit_count or crc_count or eof_count) begin
 		case(c_state)
 			idle: begin
 				if(outputting) begin
@@ -69,7 +164,10 @@ module can_tx(
 				end
 			end
 			addressing: begin
-				if(address_count == 4'd11) begin
+				if(tx != rx_buf) begin
+					n_state <= idle;
+				end
+				else if(address_count == 11'd10) begin
 					n_state <= rtr;
 				end
 				else begin
@@ -77,16 +175,16 @@ module can_tx(
 				end
 			end
 			rtr: begin
-				n_state <= num_of_bytes;
+				n_state <= ide;
 			end
 			ide: begin
-				n_state <= num_of_bytes;
+				n_state <= reserve_bit;
 			end
 			reserve_bit: begin
 				n_state <= num_of_bytes;
 			end
 			num_of_bytes: begin
-				if(address_count == 4'd4) begin
+				if(data_byte_count == 11'd4) begin
 					n_state <= data_out;
 				end
 				else begin
@@ -94,7 +192,7 @@ module can_tx(
 				end
 			end
 			data_out: begin
-				if(address_count == 6'd32) begin
+				if(data_bit_count == 11'd31) begin
 					n_state <= crc_out;
 				end
 				else begin
@@ -102,7 +200,7 @@ module can_tx(
 				end
 			end
 			crc_out: begin
-				if(address_count == 4'd15) begin
+				if(crc_count == 11'd14) begin
 					n_state <= crc_delimiter;
 				end
 				else begin
@@ -119,7 +217,7 @@ module can_tx(
 				n_state <= end_of_frame;
 			end
 			end_of_frame: begin
-				if(address_count == 4'd8) begin
+				if(eof_count == 11'd6) begin
 					n_state <= idle;
 				end
 				else begin
@@ -134,7 +232,7 @@ module can_tx(
 	end
 
 	//Output Logic
-	always @(c_state or address_count or data_byte_cout or data_bit_count or crc_count or address or data or crc_check) begin
+	always @(c_state or address or data or crc_output or crc_count or data_byte_count or data_bit_count or address_count) begin
 		case(c_state) 
 			idle: begin
 				tx <= 0;
@@ -152,13 +250,13 @@ module can_tx(
 				tx <= 0;
 			end
 			num_of_bytes: begin
-				tx <= bytes[data_byte_cout];
+				tx <= bytes[data_byte_count];
 			end
 			data_out: begin
 				tx <= data[data_bit_count];
 			end
 			crc_out: begin
-				tx <= crc_check[crc_count];
+				tx <= crc_output[crc_count];
 			end
 			crc_delimiter: begin
 				tx <= 1;
@@ -177,16 +275,5 @@ module can_tx(
 			end
 		endcase
 	end
- 	
-	//Supporting Logic
-	always @ (posedge send_data) begin
-		if(send_data == 1) begin
-			outputting <= 1;
-		end
-		else begin
-			outputting <= 0;
-		end
-	end
-
 
 endmodule

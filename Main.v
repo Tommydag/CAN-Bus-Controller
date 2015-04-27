@@ -21,12 +21,13 @@ module Main(
 	parameter address = 11'h25;
 	
 	reg send = 0;
-	wire[31:0] transmit_data;
+	reg[31:0] transmit_data = 32'hFFFFFFFF;
 	
 	//Clock Generator
 	Clock_gen clock_block(CLOCK_SIGNAL_IN,clk);
+	BaudGen baud_calc(clk,RESET,baud_clk);
 	
 	//Tx Block
-	can_tx tx_block(CAN_TX,CAN_RX,address,clk,RESET,transmit_data, send);
+	can_tx tx_block(CAN_TX,CAN_RX,address,clk,baud_clk,RESET,transmit_data, send);
 
 endmodule
