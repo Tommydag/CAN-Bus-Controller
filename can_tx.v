@@ -47,6 +47,7 @@ module can_tx(
 		end
 	end
 
+	//Counting logic
 	always @ (posedge baud_clk or posedge rst) begin
 		if(rst == 1) begin
 			count <= 0;
@@ -176,7 +177,7 @@ module can_tx(
 			end
 		endcase
 	end
-		
+ 	
 	//Supporting Logic
 	always @ (posedge send_data) begin
 		if(send_data == 1) begin
