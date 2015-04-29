@@ -26,13 +26,12 @@ module can_tx(
 
 	parameter bytes = 5'd4;
 	reg[10:0] address_count = 0, crc_count = 0, eof_count = 0 , data_bit_count = 0, data_byte_count = 0;
-	reg[7:0] c_state=0, n_state=0;
-	reg outputting = 1;
+	reg[7:0] c_state=0, n_state=0, bitstuff = 0;
 	//wire[14:0] crc_check;
 	reg[14:0] crc_output;
 
 	//CRC cyclic_red_check(data,1'b1,crc_check,rst,clk);
-	parameter crc_check = 15'd63;
+	parameter crc_check = 15'b111111111111111;
 	assign rx_buf = rx;
 	
 	always @ (posedge clk or posedge rst) begin
@@ -65,7 +64,7 @@ module can_tx(
 				eof_count <= 11'd0;
 			end
 			addressing: begin
-				address_count <= address_count + 1;
+				address_count <= address_count + 1'b1;
 				data_bit_count<= 11'd0;
 				data_byte_count<= 11'd0;
 				crc_count <= 11'd0; 
@@ -95,13 +94,13 @@ module can_tx(
 			num_of_bytes: begin
 				address_count <= 11'd0;
 				data_bit_count<= 11'd0;
-				data_byte_count<= data_byte_count +1;
+				data_byte_count<= data_byte_count +1'b1;
 				crc_count <= 11'd0; 
 				eof_count <= 11'd0;
 			end
 			data_out: begin
 				address_count <= 11'd0;
-				data_bit_count<= data_bit_count +1;
+				data_bit_count<= data_bit_count +1'b1;
 				data_byte_count<= 11'd0;
 				crc_count <= 11'd0; 
 				eof_count <= 11'd0;
@@ -110,7 +109,7 @@ module can_tx(
 				address_count <= 11'd0;
 				data_bit_count<= 11'd0;
 				data_byte_count<= 11'd0;
-				crc_count <= crc_count +1; 
+				crc_count <= crc_count + 1'b1; 
 				eof_count <= 11'd0;
 			end
 			crc_delimiter: begin
@@ -139,7 +138,7 @@ module can_tx(
 				data_bit_count<= 11'd0;
 				data_byte_count<= 11'd0;
 				crc_count <= 11'd0; 
-				eof_count <= eof_count +1;
+				eof_count <= eof_count +1'b1;
 			end
 			default: begin
 				address_count <= 11'd0;
@@ -152,11 +151,11 @@ module can_tx(
 	end
 
 	//Next State Logic
-	always @ (c_state or rx_buf or data or outputting or address_count or tx or data_byte_count
+	always @ (c_state or rx_buf or data or send_data or address_count or tx or data_byte_count
 		or data_bit_count or crc_count or eof_count) begin
 		case(c_state)
 			idle: begin
-				if(outputting) begin
+				if(send_data) begin
 					n_state <= addressing;
 				end
 				else begin
@@ -184,7 +183,7 @@ module can_tx(
 				n_state <= num_of_bytes;
 			end
 			num_of_bytes: begin
-				if(data_byte_count == 11'd4) begin
+				if(data_byte_count == 11'd3) begin
 					n_state <= data_out;
 				end
 				else begin
@@ -238,7 +237,7 @@ module can_tx(
 				tx <= 0;
 			end
 			addressing: begin
-				tx <= address[address_count];
+				tx <= address[11'd10-address_count];
 			end
 			rtr: begin
 				tx <= 0;
@@ -250,13 +249,13 @@ module can_tx(
 				tx <= 0;
 			end
 			num_of_bytes: begin
-				tx <= bytes[data_byte_count];
+				tx <= bytes[11'd3-data_byte_count];
 			end
 			data_out: begin
-				tx <= data[data_bit_count];
+				tx <= data[11'd31-data_bit_count];
 			end
 			crc_out: begin
-				tx <= crc_output[crc_count];
+				tx <= crc_output[11'd14-crc_count];
 			end
 			crc_delimiter: begin
 				tx <= 1;
