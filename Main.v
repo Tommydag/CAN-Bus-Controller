@@ -19,9 +19,9 @@ module Main(
 	input[7:0] transmit_data
 	);
 	
-	wire[31:0] tx_data;
+	wire[63:0] tx_data;
 	
-	assign tx_data = {4{transmit_data}};
+	assign tx_data = {8{transmit_data}};
 	
 	//Device address
 	parameter address = 11'h25;
@@ -31,8 +31,8 @@ module Main(
 	BaudGen baud_calc(clk,RESET,baud_clk);
 	
 	//Tx Block
-	can_tx tx_block(CAN_TX,CAN_RX,address,clk,baud_clk,RESET,tx_data,send_data);
+	//can_tx tx_block(CAN_TX,CAN_RX,address,clk,baud_clk,RESET,tx_data,send_data);
 	
-	//tx_container tx_can(CAN_TX,CAN_RX,address,clk,baud_clk,RESET,transmit_data, send);
+	tx_container tx_can(CAN_TX,CAN_RX,address,clk,baud_clk,RESET,tx_data,send_data);
 
 endmodule

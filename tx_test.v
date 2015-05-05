@@ -37,7 +37,7 @@ module tx_test;
 	wire tx;
 
 	// Instantiate the Unit Under Test (UUT)
-	can_tx uut (
+	tx_container uut (
 		.tx(tx), 
 		.rx(rx), 
 		.address(address), 
@@ -58,14 +58,15 @@ module tx_test;
 		rst = 1'b1;
 		data = 32'd0;
 		send_data = 1'b0;
+		
 		// Add stimulus here
 		#100 rst = 0;
 		#100 data = 32'hAAAAAAAA;
-		#110 send_data = 1'b1;
-		#300 send_data = 1'b0;
+		#100 send_data = 1'b1;
+		#3000 send_data = 1'b0;
 		#310000 $stop;
 	end
-		always #2.5 clk=~clk;
-		always #2000 baud_clk=~baud_clk;
+		always #1.25 clk=~clk;
+		always #1000 baud_clk=~baud_clk;
 endmodule
 

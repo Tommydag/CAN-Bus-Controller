@@ -12,21 +12,23 @@
 //////////////////////////////////////////////////////////////////////////////////
 module can_tx(
 	output reg tx,
+	output reg can_bitstuff,
 	input rx,
 	input[10:0] address,
 	input clk,
 	input baud_clk,
 	input rst,
-	input [31:0] data,
-	input send_data
+	input [63:0] data,
+	input send_data,
+	input bitstuffed_output
 	);
 	
 	parameter idle = 8'h0,  waiting = 8'h1, addressing =8'h2 ,rtr = 8'h3 ,ide = 8'h4, reserve_bit = 8'h5, num_of_bytes = 8'h6 ,
 			data_out = 8'h7, crc_out = 8'h8, crc_delimiter = 8'h9 , ack = 8'hA, ack_delimiter =  8'hB, end_of_frame = 8'hC;
 
-	parameter bytes = 5'd4;
+	parameter bytes = 5'd8;
 	reg[10:0] address_count = 0, crc_count = 0, eof_count = 0 , data_bit_count = 0, data_byte_count = 0;
-	reg[7:0] c_state=0, n_state=0, bitstuff = 0;
+	reg[7:0] c_state=0, n_state=0;
 	//wire[14:0] crc_check;
 	reg[14:0] crc_output;
 
@@ -151,7 +153,7 @@ module can_tx(
 	end
 
 	//Next State Logic
-	always @ (c_state or rx_buf or data or send_data or address_count or tx or data_byte_count
+	always @ (c_state or rx_buf or data or send_data or address_count or bitstuffed_output or data_byte_count
 		or data_bit_count or crc_count or eof_count) begin
 		case(c_state)
 			idle: begin
@@ -163,7 +165,7 @@ module can_tx(
 				end
 			end
 			addressing: begin
-				if(tx != rx_buf) begin
+				if(rx_buf != bitstuffed_output) begin
 					n_state <= idle;
 				end
 				else if(address_count == 11'd10) begin
@@ -235,42 +237,55 @@ module can_tx(
 		case(c_state) 
 			idle: begin
 				tx <= 0;
+				can_bitstuff <= 0;
 			end
 			addressing: begin
 				tx <= address[11'd10-address_count];
+				can_bitstuff <= 1;
 			end
 			rtr: begin
 				tx <= 0;
+				can_bitstuff <= 1;
 			end
 			ide: begin
 				tx <= 0;
+				can_bitstuff <= 1;
 			end
 			reserve_bit: begin
 				tx <= 0;
+				can_bitstuff <= 1;
 			end
 			num_of_bytes: begin
 				tx <= bytes[11'd3-data_byte_count];
+				can_bitstuff <= 1;
 			end
 			data_out: begin
 				tx <= data[11'd31-data_bit_count];
+				can_bitstuff <= 1;
 			end
 			crc_out: begin
 				tx <= crc_output[11'd14-crc_count];
+				can_bitstuff <= 1;
 			end
 			crc_delimiter: begin
 				tx <= 1;
+				can_bitstuff <= 0;
 			end
 			ack: begin
 				tx <= 1;
+				can_bitstuff <= 0;
 			end
 			ack_delimiter:begin
 				tx <= 1;
+				can_bitstuff <= 0;
 			end
 			end_of_frame: begin
 				tx <= 1;
+				can_bitstuff <= 0;
 			end
 			default: begin
 				tx <= 1;
+				can_bitstuff <= 0;
 			end
 		endcase
 	end
