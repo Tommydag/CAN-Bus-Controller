@@ -20,6 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 module tx_container(
 	output reg tx,
+	output txing,
 	input rx,
 	input[10:0] address,
 	input clk,
@@ -32,12 +33,12 @@ module tx_container(
 
 	parameter  init = 2'h0,  ones = 2'h1, zeros = 2'h2;
 	
-	reg bit_stuffing = 0;
+	reg bit_stuffing = 0, clear_to_tx = 1;
 	reg[1:0] c_state=0, n_state=0, p_state = 0;
 	reg[31:0] bit_stuffing_count = 0;
 	wire can_bitstuff;
-	can_tx tx_block(tx_buf,can_bitstuff,rx,address,clk,baud_clk,rst,data,send_data,tx);
-		
+	can_tx tx_block(tx_buf,can_bitstuff,txing,rx,address,clk,baud_clk,rst,data,send_data,tx,clear_to_tx);
+	
 	always @ (posedge clk or posedge rst) begin
 		if(rst) begin
 			bit_stuffing_count<= 0;

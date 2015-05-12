@@ -30,7 +30,7 @@ module tx_test;
 	reg clk;
 	reg baud_clk;
 	reg rst;
-	reg [31:0] data;
+	reg [63:0] data;
 	reg send_data;
 
 	// Outputs
@@ -47,6 +47,8 @@ module tx_test;
 		.data(data), 
 		.send_data(send_data)
 	);
+	
+	
 
 	assign rx = tx;
 	
@@ -56,12 +58,12 @@ module tx_test;
 		clk = 1'b0;
 		baud_clk = 1'b0;
 		rst = 1'b1;
-		data = 32'd0;
+		data = 64'hAAAAAAAAAAAAAAAA;
 		send_data = 1'b0;
 		
 		// Add stimulus here
 		#100 rst = 0;
-		#100 data = 32'hAAAAAAAA;
+
 		#100 send_data = 1'b1;
 		#3000 send_data = 1'b0;
 		#310000 $stop;

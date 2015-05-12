@@ -20,6 +20,7 @@ module Main(
 	);
 	
 	wire[63:0] tx_data;
+	wire txing;
 	
 	assign tx_data = {8{transmit_data}};
 	
@@ -32,7 +33,7 @@ module Main(
 	
 	//Tx Block
 	//can_tx tx_block(CAN_TX,CAN_RX,address,clk,baud_clk,RESET,tx_data,send_data);
-	
-	tx_container tx_can(CAN_TX,CAN_RX,address,clk,baud_clk,RESET,tx_data,send_data);
+	tx_container tx_can(CAN_TX,txing,CAN_RX,address,clk,baud_clk,RESET,tx_data,send_data);
+	rx_container rx_can(rx_data,txing,CAN_RX,clk,baud_clk,RESET,rxing);
 
 endmodule
