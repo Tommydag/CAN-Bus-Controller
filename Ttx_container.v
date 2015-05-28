@@ -1,27 +1,20 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
+// Rose-Hulman Institute of Technology
+// Tom D'Agostino
+// ECE398 CAN Controller Design
 // 
-// Create Date:    19:14:03 04/27/2015 
-// Design Name: 
-// Module Name:    tx_container 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
-//
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
-//
+// Create Date:    21:29:50 04/13/2015 
+// Module Name:    tx_container
+// Project Name:   CANBUS
+// Target Devices: Nexys 3 running a Xilinx Spartan6 XC6LX16-CS324
+// Description: The tx portion of the CAN bus that implements bitstuffing
 //////////////////////////////////////////////////////////////////////////////////
 module tx_container(
 	output reg tx,
 	output txing,
 	input rx,
+	input rxing,
 	input[10:0] address,
 	input clk,
 	input baud_clk,
@@ -32,13 +25,14 @@ module tx_container(
 
 
 	parameter  init = 2'h0,  ones = 2'h1, zeros = 2'h2;
-	
-	reg bit_stuffing = 0, clear_to_tx = 1;
+	assign clear_to_tx =1;
+	reg bit_stuffing = 0;
 	reg[1:0] c_state=0, n_state=0, p_state = 0;
 	reg[31:0] bit_stuffing_count = 0;
 	wire can_bitstuff;
-	can_tx tx_block(tx_buf,can_bitstuff,txing,rx,address,clk,baud_clk,rst,data,send_data,tx,clear_to_tx);
 	
+	can_tx tx_block(tx_buf,can_bitstuff,txing,rx,address,clk,baud_clk,rst,data,send_data,tx,clear_to_tx);
+
 	always @ (posedge clk or posedge rst) begin
 		if(rst) begin
 			bit_stuffing_count<= 0;
@@ -68,7 +62,7 @@ module tx_container(
 		end
 	end
 
-	always @ (negedge clk) begin
+	always @ (posedge clk) begin
 		c_state <= n_state;
 	end
 

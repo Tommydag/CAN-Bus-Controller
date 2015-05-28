@@ -1,0 +1,26 @@
+
+//Sample Input
+NET "transmit_data[0]" LOC = T10;
+NET "transmit_data[1]" LOC = T9;
+NET "transmit_data[2]" LOC = V9;
+NET "transmit_data[3]" LOC = M8;
+NET "transmit_data[4]" LOC = N8;
+NET "transmit_data[5]" LOC = U8;
+NET "transmit_data[6]" LOC = V8;
+NET "transmit_data[7]" LOC = T5;
+
+//Sample Setup, pins chosen to work with boards
+NET "CAN_TX" LOC = T12;
+NET "CAN_RX" LOC = P11;
+NET "CLOCK_SIGNAL_IN" LOC = V10;
+NET "RESET" LOC = C9;
+NET "send_data" LOC = D9;
+
+# PlanAhead Generated IO constraints 
+
+NET "CAN_TX" IOSTANDARD = LVCMOS33;
+NET "CAN_RX" IOSTANDARD = LVCMOS33;
+
+//For faster switching
+NET "CAN_TX" DRIVE = 16;
+NET "CAN_TX" SLEW = FAST;

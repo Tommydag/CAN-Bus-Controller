@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date:    22:42:04 05/11/2015 
+// Create Date:    14:59:33 05/17/2015 
 // Design Name: 
-// Module Name:    rx_can 
+// Module Name:    bit_timing 
 // Project Name: 
 // Target Devices: 
 // Tool versions: 
@@ -18,25 +18,18 @@
 // Additional Comments: 
 //
 //////////////////////////////////////////////////////////////////////////////////
-module rx_container(
-	output reg [63:0] rx_data,
-	output reg rxing,
-	input txing,
-	input rx,
-	input clk,
-	input baud_clk,
-	input rst
+module bit_timing(
+    input rx,
+    input rst,
+    input clk,
+	output sampled_rx,
+    output baud_clk
     );
-	
-	initial rxing = 1'b0;
-	initial rx_data = 64'd0;
-	reg[63:0] shift_buffer = 64'd0;
-	
-	//shift_reg data_frame_buffer(rx, shifted_bus, finished_rx, rst, baud_clk);
-	
-	always @ (posedge clk or rst) begin
-		
-			
-	
+
+	if(posedge reset
+
+
+
+
 
 endmodule

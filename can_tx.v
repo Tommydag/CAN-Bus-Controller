@@ -27,8 +27,8 @@ module can_tx(
 	
 	
 	assign rx_buf = rx;
-	
-	parameter idle = 8'h0,  start_of_frame = 8'h1, addressing =8'h2 ,rtr = 8'h3 ,ide = 8'h4, reserve_bit = 8'h5, num_of_bytes = 8'h6 ,
+	parameter all_ones = 15'b111111111111111;
+	parameter idle = 8'h0,  start_of_frame = 8'h1, addressing =8'h2 ,rtr = 8'h3 ,ide = 8'h4, reserve_bit = 8'h5, num_of_bytes = 8'h6,
 			data_out = 8'h7, crc_out = 8'h8, crc_delimiter = 8'h9 , ack = 8'hA, ack_delimiter =  8'hB, end_of_frame = 8'hC, waiting = 8'hD;
 
 	parameter bytes = 5'd8;
@@ -36,17 +36,26 @@ module can_tx(
 	reg[7:0] c_state=0, n_state=0;
 	initial txing = 0;
 	
-	wire[14:0] crc_check;
-	reg[14:0] crc_output;
-	CRC cyclic_red_check(data,crc_check,rst,clk);
+	reg[14:0] crc_output, crc_holder;
+	wire one_shotted_send;
+	wire[14:0] crc_buff;
+	CRC cyclic_red_check(data, one_shotted_send, crc_buff,rst,clk);
 	
+	OneShot os(send_data, clk, rst, one_shotted_send);
+
+	always @(crc_buff or crc_holder) begin
+		if(crc_buff != all_ones) 
+			crc_output <= crc_buff;
+		else
+			crc_output <= crc_holder;
+	end
 	
 	always @ (posedge clk or posedge rst) begin
 		if(rst == 1) begin
-			crc_output <= 15'd0;
+			crc_holder <= 15'd0;
 		end
 		else begin
-			crc_output <= crc_check;
+			crc_holder <= crc_output;
 		end
 	end
 	
@@ -173,7 +182,7 @@ module can_tx(
 
 	//Next State Logic
 	always @ (c_state or rx_buf or data or send_data or address_count or bitstuffed_output or data_byte_count
-		or data_bit_count or crc_count or eof_count or clear_to_tx) begin
+		or data_bit_count or crc_count or eof_count or clear_to_tx or crc_output) begin
 		case(c_state)
 			idle: begin
 				if(send_data && clear_to_tx) begin
@@ -201,7 +210,7 @@ module can_tx(
 			end
 			addressing: begin
 				if(rx_buf != bitstuffed_output) begin
-					n_state <= waiting;
+					n_state <= waiting; //Lost Arbitration
 				end
 				else if(address_count == 11'd10) begin
 					n_state <= rtr;
@@ -228,7 +237,7 @@ module can_tx(
 				end
 			end
 			data_out: begin
-				if(data_bit_count == 11'd31) begin
+				if(data_bit_count == 11'd63) begin
 					n_state <= crc_out;
 				end
 				else begin
@@ -271,7 +280,7 @@ module can_tx(
 	always @(c_state or address or data or crc_output or crc_count or data_byte_count or data_bit_count or address_count) begin
 		case(c_state) 
 			idle: begin
-				tx <= 0;
+				tx <= 1;
 				can_bitstuff <= 0;
 				txing <= 1'b0;
 			end
@@ -306,7 +315,7 @@ module can_tx(
 				txing <= 1'b1;
 			end
 			data_out: begin
-				tx <= data[11'd31-data_bit_count];
+				tx <= data[11'd63-data_bit_count];
 				can_bitstuff <= 1;
 				txing <= 1'b1;
 			end

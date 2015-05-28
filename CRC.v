@@ -14,13 +14,14 @@
 //-----------------------------------------------------------------------------
 module CRC(
   input [63:0] data_in,
+  input crc_en,
   output [14:0] crc_out,
   input rst,
   input clk);
 //
   reg [14:0] lfsr_q ,lfsr_c ;
 //
-  assign crc_out = lfsr_q;
+  assign crc_out[14:0] = lfsr_q[14:0];
 
   always @(*) begin
      lfsr_c[0] = lfsr_q[0] ^ lfsr_q[2] ^ lfsr_q[3] ^ lfsr_q[8] ^ lfsr_q[9] ^ lfsr_q[12] ^ lfsr_q[13] ^ lfsr_q[14] ^ data_in[0] ^ data_in[1] ^ data_in[2] ^ data_in[3] ^ data_in[4] ^ data_in[6] ^ data_in[7] ^ data_in[9] ^ data_in[10] ^ data_in[11] ^ data_in[12] ^ data_in[14] ^ data_in[17] ^ data_in[19] ^ data_in[20] ^ data_in[21] ^ data_in[27] ^ data_in[29] ^ data_in[33] ^ data_in[37] ^ data_in[38] ^ data_in[43] ^ data_in[45] ^ data_in[48] ^ data_in[49] ^ data_in[51] ^ data_in[52] ^ data_in[57] ^ data_in[58] ^ data_in[61] ^ data_in[62] ^ data_in[63];
@@ -45,7 +46,7 @@ module CRC(
       lfsr_q <= {15{1'b1}};
     end
     else begin
-       lfsr_q <= lfsr_c;
+       lfsr_q[14:0] <= crc_en ? lfsr_c[14:0] : lfsr_q[14:0];
     end
   end // always
 endmodule // crc
